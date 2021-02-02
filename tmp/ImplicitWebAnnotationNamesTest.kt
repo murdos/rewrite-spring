@@ -17,21 +17,20 @@ package org.openrewrite.java.spring
 
 import org.junit.jupiter.api.Test
 import org.openrewrite.Issue
-import org.openrewrite.Recipe
-import org.openrewrite.RecipeTest
+import org.openrewrite.RefactorVisitor
+import org.openrewrite.RefactorVisitorTestForParser
 import org.openrewrite.java.JavaParser
+import org.openrewrite.java.tree.J
 
-class ImplicitWebAnnotationNamesTest : RecipeTest {
+class ImplicitWebAnnotationNamesTest : RefactorVisitorTestForParser<J.CompilationUnit> {
 
-    override val parser: JavaParser
-        get() = JavaParser.fromJavaVersion()
+    override val parser: JavaParser = JavaParser.fromJavaVersion()
             .classpath("spring-web")
             .build()
-    override val recipe: Recipe
-        get() = ImplicitWebAnnotationNames()
+    override val visitors: Iterable<RefactorVisitor<*>> = listOf(ImplicitWebAnnotationNames())
 
     @Test
-    fun removeUnnecessaryAnnotationArgument() = assertChanged(
+    fun removeUnnecessaryAnnotationArgument() = assertRefactored(
             before = """
                 import org.springframework.http.ResponseEntity;
                 import org.springframework.web.bind.annotation.*;
@@ -43,7 +42,6 @@ class ImplicitWebAnnotationNamesTest : RecipeTest {
                     public ResponseEntity<String> getUser(@PathVariable("id") Long id,
                                                           @PathVariable(required = false) Long p2,
                                                           @PathVariable(value = "p3") Long anotherName) {
-                        System.out.println(anotherName);
                     }
                 }
             """,
@@ -58,7 +56,6 @@ class ImplicitWebAnnotationNamesTest : RecipeTest {
                     public ResponseEntity<String> getUser(@PathVariable Long id,
                                                           @PathVariable(required = false) Long p2,
                                                           @PathVariable Long p3) {
-                        System.out.println(p3);
                     }
                 }
             """
@@ -66,7 +63,7 @@ class ImplicitWebAnnotationNamesTest : RecipeTest {
 
     @Issue("#4")
     @Test
-    fun removeUnnecessarySpacingInFollowingAnnotationArgument() = assertChanged(
+    fun removeUnnecessarySpacingInFollowingAnnotationArgument() = assertRefactored(
             before = """
                 import org.springframework.http.ResponseEntity;
                 import org.springframework.web.bind.annotation.*;
@@ -111,7 +108,7 @@ class ImplicitWebAnnotationNamesTest : RecipeTest {
     )
 
     @Test
-    fun onlyDropCamelCasedNames() = assertChanged(
+    fun onlyDropCamelCasedNames() = assertRefactored(
             before = """
                 import org.springframework.web.bind.annotation.*;
                 
