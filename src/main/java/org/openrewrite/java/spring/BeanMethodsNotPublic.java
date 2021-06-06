@@ -59,15 +59,22 @@ public class BeanMethodsNotPublic extends Recipe {
             J.MethodDeclaration m = super.visitMethodDeclaration(method, executionContext);
 
             if (m.getAllAnnotations().stream().anyMatch(BEAN_ANNOTATION_MATCHER::matches)) {
-                // remove public modifier and copy any associated comments to the method
+                // remove public modifier and copy any associated comments
                 final List<Comment> modifierComments = new ArrayList<>();
                 List<J.Modifier> modifiers = ListUtils.map(m.getModifiers(), mod -> {
                     if (mod.getType() == J.Modifier.Type.Public) {
                         modifierComments.addAll(mod.getComments());
                         return null;
                     }
+                    // copy public modifier comment to next modifier if it exists
+                    if (!modifierComments.isEmpty()) {
+                        J.Modifier followingModifier = mod.withComments(ListUtils.concatAll(new ArrayList<>(modifierComments), mod.getComments()));
+                        modifierComments.clear();
+                        return followingModifier;
+                    }
                     return mod;
                 });
+                // if no following modifier exists, add comments to method itself
                 if (!modifierComments.isEmpty()) {
                     m = m.withComments(ListUtils.concatAll(m.getComments(), modifierComments));
                 }
